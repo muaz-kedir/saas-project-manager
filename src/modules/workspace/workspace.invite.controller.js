@@ -34,6 +34,27 @@ exports.inviteUser = async (req, res) => {
         message: "No workspace exists with the provided ID"
       });
     }
+
+    // Check if the requesting user is a member and get their role
+    const requesterMembership = await WorkspaceMember.findOne({
+      workspace: workspaceId,
+      user: req.user.userId
+    });
+
+    if (!requesterMembership) {
+      return res.status(403).json({
+        error: "Access denied",
+        message: "You are not a member of this workspace"
+      });
+    }
+
+    // Only OWNER can invite users
+    if (requesterMembership.role !== "OWNER") {
+      return res.status(403).json({
+        error: "Permission denied",
+        message: "Only workspace owners can invite users"
+      });
+    }
     
     // Find user by email
     const user = await User.findOne({ email });

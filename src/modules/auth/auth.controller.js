@@ -24,7 +24,14 @@ exports.register = async (req, res) => {
       password: hashedPassword
     });
 
-    res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({ 
+      message: "User registered successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -54,7 +61,15 @@ exports.login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.json({ token });
+    res.json({ 
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
