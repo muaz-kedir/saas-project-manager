@@ -10,14 +10,16 @@ const {
 } = require("./workspace.controller");
 
 const {
-  inviteUser
+  inviteUser,
+  getMembers
 } = require("./workspace.invite.controller");
 
 // create & list workspaces
 router.post("/", auth, createWorkspace);
 router.get("/", auth, getMyWorkspaces);
 
-// invite users (checks OWNER permission inside controller)
+// workspace members
+router.get("/:workspaceId/members", auth, getMembers);
 router.post("/:workspaceId/invite", auth, inviteUser);
 
 module.exports = router;

@@ -26,8 +26,17 @@ exports.inviteUser = async (req, res) => {
       });
     }
 
+    // Parallel queries for better performance
+    const [workspace, requesterMembership, user] = await Promise.all([
+      Workspace.findById(workspaceId),
+      WorkspaceMember.findOne({
+        workspace: workspaceId,
+        user: req.user.userId
+      }),
+      User.findOne({ email })
+    ]);
+
     // Check if workspace exists
-    const workspace = await Workspace.findById(workspaceId);
     if (!workspace) {
       return res.status(404).json({ 
         error: "Workspace not found",
@@ -35,12 +44,7 @@ exports.inviteUser = async (req, res) => {
       });
     }
 
-    // Check if the requesting user is a member and get their role
-    const requesterMembership = await WorkspaceMember.findOne({
-      workspace: workspaceId,
-      user: req.user.userId
-    });
-
+    // Check if the requesting user is a member
     if (!requesterMembership) {
       return res.status(403).json({
         error: "Access denied",
@@ -48,17 +52,27 @@ exports.inviteUser = async (req, res) => {
       });
     }
 
-    // Only OWNER can invite users
-    if (requesterMembership.role !== "OWNER") {
+    // Check permissions based on role
+    const requesterRole = requesterMembership.role;
+    const memberRole = role ? role.toUpperCase() : "MEMBER";
+
+    // Only OWNER and ADMIN can invite users
+    if (requesterRole !== "OWNER" && requesterRole !== "ADMIN") {
       return res.status(403).json({
         error: "Permission denied",
-        message: "Only workspace owners can invite users"
+        message: "Only workspace owners and admins can invite users"
+      });
+    }
+
+    // ADMIN can only invite MEMBER
+    if (requesterRole === "ADMIN" && memberRole !== "MEMBER") {
+      return res.status(403).json({
+        error: "Permission denied",
+        message: "Admins can only invite members, not other admins or owners"
       });
     }
     
-    // Find user by email
-    const user = await User.findOne({ email });
-    
+    // Check if user exists
     if (!user) {
       return res.status(404).json({ 
         error: "User not found",
@@ -81,7 +95,6 @@ exports.inviteUser = async (req, res) => {
     
     // Validate role
     const validRoles = ["OWNER", "ADMIN", "MEMBER"];
-    const memberRole = role ? role.toUpperCase() : "MEMBER";
     
     if (!validRoles.includes(memberRole)) {
       return res.status(400).json({
@@ -100,13 +113,18 @@ exports.inviteUser = async (req, res) => {
     res.status(201).json({
       message: "User invited successfully",
       member: {
-        id: member._id,
-        email: user.email,
-        name: user.name,
-        role: member.role
+        _id: member._id,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email
+        },
+        role: member.role,
+        createdAt: member.createdAt
       }
     });
   } catch (error) {
+    console.error('Invite user error:', error);
     res.status(500).json({ 
       error: "Failed to invite user",
       message: error.message 

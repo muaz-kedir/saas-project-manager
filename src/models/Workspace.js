@@ -5,9 +5,14 @@ const workspaceSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true
+      required: true,
+      trim: true
     },
-    ownerId: {
+    description: {
+      type: String,
+      default: ''
+    },
+    owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true

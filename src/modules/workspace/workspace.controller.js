@@ -7,19 +7,33 @@ exports.createWorkspace = async (req, res) => {
   try {
     const { name, description } = req.body;
 
+    console.log('Creating workspace:', { name, description, userId: req.user.userId });
+
+    // Validate required fields
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({
+        error: "Validation error",
+        message: "Workspace name is required"
+      });
+    }
+
     // Create workspace
     const workspace = await Workspace.create({
-      name,
-      description,
+      name: name.trim(),
+      description: description?.trim() || '',
       owner: req.user.userId
     });
 
+    console.log('Workspace created:', workspace);
+
     // Add owner as member
-    await WorkspaceMember.create({
+    const member = await WorkspaceMember.create({
       user: req.user.userId,
       workspace: workspace._id,
       role: "OWNER"
     });
+
+    console.log('Member created:', member);
 
     res.status(201).json({
       message: "Workspace created successfully",
@@ -31,6 +45,7 @@ exports.createWorkspace = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Create workspace error:', error);
     res.status(500).json({ 
       error: "Failed to create workspace",
       message: error.message 

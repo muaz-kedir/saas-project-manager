@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark theme base styles */
+body {
+  background-color: #2C2D33;
+  color: #E8E9ED;
+}
+
+/* Custom scrollbar - Dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #1A1B1F;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #3A3B41;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #4B4C52;
+}
+
+/* Custom utility classes - Dark theme */
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 disabled:bg-gray-600 disabled:cursor-not-allowed shadow-lg shadow-primary-600/20;
+  }
+
+  .btn-secondary {
+    @apply border transition-all duration-200;
+    background-color: #1E1F24;
+    color: #E8E9ED;
+    border-color: #3A3B41;
+  }
+
+  .btn-secondary:hover {
+    background-color: #3A3B41;
+  }
+
+  .input {
+    @apply w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    background-color: #1E1F24;
+    border: 1px solid #3A3B41;
+    color: #E8E9ED;
+  }
+
+  .input::placeholder {
+    color: #9A9BA5;
+  }
+
+  .card {
+    @apply rounded-xl shadow-lg p-6;
+    background-color: #1E1F24;
+    border: 1px solid #3A3B41;
+  }
+
+  /* Gradient backgrounds for cards */
+  .card-gradient-yellow {
+    @apply bg-gradient-to-br from-accent-yellow to-accent-orange;
+  }
+
+  .card-gradient-pink {
+    @apply bg-gradient-to-br from-accent-pink to-purple-500;
+  }
+
+  .card-gradient-blue {
+    @apply bg-gradient-to-br from-accent-blue to-primary-600;
+  }
+
+  .card-gradient-purple {
+    @apply bg-gradient-to-br from-accent-purple to-primary-700;
+  }
+
+  .card-gradient-green {
+    @apply bg-gradient-to-br from-accent-green to-green-500;
+  }
+}
+
+/* Smooth transitions */
+* {
+  @apply transition-colors duration-200;
+}
