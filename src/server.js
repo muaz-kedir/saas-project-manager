@@ -5,17 +5,27 @@ const connectDB = require("./config/db");
 
 const PORT = process.env.PORT || 5000;
 
-// Connect database
-connectDB();
+// Start server FIRST (required for Render)
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
 
-// Start server
-// app.listen(PORT, () => {
-//   console.log(`✅ Server running on port ${PORT}`);
-// });
+// Connect database AFTER server starts
+connectDB()
+  .then(() => {
+    console.log("✅ Database connected successfully");
+  })
+  .catch((error) => {
+    console.error("❌ Database connection failed:", error.message);
+    console.log("⚠️  Server running without database connection");
+  });
 
-
-// const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (err) => {
+  console.error("❌ Unhandled Rejection:", err.message);
+  // Don't exit in production, just log the error
+  if (process.env.NODE_ENV !== 'production') {
+    server.close(() => process.exit(1));
+  }
 });
