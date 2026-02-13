@@ -3,10 +3,11 @@ import { useParams } from 'react-router-dom'
 import { useWorkspace } from '../context/WorkspaceContext'
 import MembersList from '../components/MembersList'
 import InviteMemberModal from '../components/InviteMemberModal'
+import WorkspaceProjects from './WorkspaceProjects'
 
 /**
  * WorkspaceHome Component
- * Main workspace view with tabs for Overview and Members
+ * Main workspace view with tabs for Overview, Members, and Projects
  */
 const WorkspaceHome = () => {
   const { workspaceId } = useParams()
@@ -65,6 +66,19 @@ const WorkspaceHome = () => {
               )}
             </button>
             <button
+              onClick={() => setActiveTab('projects')}
+              className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === 'projects'
+                  ? 'text-primary-500'
+                  : 'text-dark-muted hover:text-dark-text'
+              }`}
+            >
+              Projects
+              {activeTab === 'projects' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500"></div>
+              )}
+            </button>
+            <button
               onClick={() => setActiveTab('members')}
               className={`px-4 py-3 text-sm font-medium transition-colors relative ${
                 activeTab === 'members'
@@ -103,18 +117,11 @@ const WorkspaceHome = () => {
               <span className="text-3xl">🚀</span>
               <div>
                 <h3 className="font-bold text-dark-text mb-1">
-                  Projects & Boards Coming Soon!
+                  Workspace Overview
                 </h3>
                 <p className="text-dark-muted text-sm">
-                  This workspace view will soon include:
+                  Quick stats and activity for this workspace.
                 </p>
-                <ul className="list-disc list-inside text-sm text-dark-muted mt-2 space-y-1">
-                  <li>Project management</li>
-                  <li>Kanban boards</li>
-                  <li>Task tracking</li>
-                  <li>Team collaboration</li>
-                  <li>Activity timeline</li>
-                </ul>
               </div>
             </div>
           </div>
@@ -160,6 +167,10 @@ const WorkspaceHome = () => {
             </div>
           </div>
         </>
+      )}
+
+      {activeTab === 'projects' && (
+        <WorkspaceProjects />
       )}
 
       {activeTab === 'members' && (

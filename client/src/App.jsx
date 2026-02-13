@@ -1,38 +1,43 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { WorkspaceProvider } from './context/WorkspaceContext'
+import { ProjectProvider } from './context/ProjectContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 import MainLayout from './layouts/MainLayout'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import WorkspaceHome from './pages/WorkspaceHome'
+import ProjectHome from './pages/ProjectHome'
 
 function App() {
   return (
     <AuthProvider>
       <WorkspaceProvider>
-        <Router>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+        <ProjectProvider>
+          <Router>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
 
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<MainLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/workspace/:workspaceId" element={<WorkspaceHome />} />
+              {/* Protected routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<MainLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/workspace/:workspaceId" element={<WorkspaceHome />} />
+                  <Route path="/workspace/:workspaceId/project/:projectId" element={<ProjectHome />} />
+                </Route>
               </Route>
-            </Route>
 
-            {/* Redirect root to dashboard */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              {/* Redirect root to dashboard */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-            {/* 404 - Redirect to dashboard */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Router>
+              {/* 404 - Redirect to dashboard */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Router>
+        </ProjectProvider>
       </WorkspaceProvider>
     </AuthProvider>
   )
