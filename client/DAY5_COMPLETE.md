@@ -17,7 +17,7 @@
 - `projects` - Array of workspace projects
 - `loading` - Loading state
 - `error` - Error messages
-
+or m
 **Functions:**
 - `fetchProjects(workspaceId)` - Fetch all projects in workspace
 - `createProject(name, workspaceId)` - Create new project

@@ -2,7 +2,6 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
-const tenant = require("../middlewares/tenant.middleware");
 
 const {
   createBoard,
@@ -12,14 +11,16 @@ const {
   deleteBoard
 } = require("../controllers/board.controller");
 
-// All routes require authentication and workspace context
+// All routes require authentication
 router.use(auth);
-router.use(tenant);
 
-router.post("/project/:projectId", createBoard);
+// Get boards by project
 router.get("/project/:projectId", getBoards);
+
+// Create, update, delete boards
+router.post("/", createBoard);
 router.get("/:id", getBoard);
-router.put("/:id", updateBoard);
+router.patch("/:id", updateBoard);
 router.delete("/:id", deleteBoard);
 
 module.exports = router;
