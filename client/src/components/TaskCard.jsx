@@ -1,11 +1,13 @@
 import { useState } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { useTask } from '../context/TaskContext'
 import EditTaskModal from './EditTaskModal'
 
 /**
  * TaskCard Component
- * Displays a single task card with edit/delete actions
+ * Displays a single task card with edit/delete actions and drag & drop
  */
 const TaskCard = ({ task, columnId }) => {
   const { selectedWorkspace, getUserRole } = useWorkspace()
@@ -16,10 +18,28 @@ const TaskCard = ({ task, columnId }) => {
   const role = selectedWorkspace ? getUserRole(selectedWorkspace) : null
 
   // Permission checks
-  // Owner and Admin can edit/delete all tasks
-  // Member can only create tasks, not edit/delete
   const canEdit = role === 'OWNER' || role === 'ADMIN'
   const canDelete = role === 'OWNER' || role === 'ADMIN'
+  const canDrag = role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER'
+
+  // Drag & Drop setup
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ 
+    id: task._id,
+    disabled: !canDrag
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
 
   // Handle delete task
   const handleDelete = async () => {
@@ -38,7 +58,15 @@ const TaskCard = ({ task, columnId }) => {
 
   return (
     <>
-      <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-primary-500/30 transition-all duration-200 group cursor-pointer">
+      <div 
+        ref={setNodeRef}
+        style={style}
+        className={`bg-white p-3 rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-primary-500/30 transition-all duration-200 group cursor-grab active:cursor-grabbing ${
+          isDragging ? 'shadow-xl scale-105 rotate-2' : ''
+        }`}
+        {...attributes}
+        {...listeners}
+      >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <p className="text-sm text-gray-800 font-medium break-words">
@@ -51,7 +79,10 @@ const TaskCard = ({ task, columnId }) => {
             {/* Edit Button */}
             {canEdit && (
               <button
-                onClick={() => setIsEditModalOpen(true)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsEditModalOpen(true)
+                }}
                 className="p-1 text-gray-400 hover:text-primary-500 hover:bg-gray-100 rounded transition-colors"
                 title="Edit task"
               >
@@ -64,7 +95,10 @@ const TaskCard = ({ task, columnId }) => {
             {/* Delete Button */}
             {canDelete && (
               <button
-                onClick={handleDelete}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDelete()
+                }}
                 disabled={isDeleting}
                 className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
                 title="Delete task"

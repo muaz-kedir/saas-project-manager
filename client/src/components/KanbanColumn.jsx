@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { useColumn } from '../context/ColumnContext'
 import { useTask } from '../context/TaskContext'
@@ -8,7 +10,7 @@ import CreateTaskModal from './CreateTaskModal'
 
 /**
  * KanbanColumn Component
- * Displays a single Kanban column with tasks
+ * Displays a single Kanban column with tasks and drag & drop support
  */
 const KanbanColumn = ({ column }) => {
   const { selectedWorkspace, getUserRole } = useWorkspace()
@@ -25,6 +27,11 @@ const KanbanColumn = ({ column }) => {
   const canDelete = role === 'OWNER'
   const canCreateTask = role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER'
 
+  // Droppable setup
+  const { setNodeRef, isOver } = useDroppable({
+    id: column._id,
+  })
+
   // Fetch tasks when column mounts
   useEffect(() => {
     if (column._id) {
@@ -34,6 +41,7 @@ const KanbanColumn = ({ column }) => {
 
   // Get tasks for this column
   const tasks = getColumnTasks(column._id)
+  const taskIds = tasks.map(task => task._id)
 
   // Handle delete column
   const handleDelete = async () => {
@@ -52,7 +60,12 @@ const KanbanColumn = ({ column }) => {
 
   return (
     <>
-      <div className="flex-shrink-0 w-80 bg-white rounded-lg shadow-md flex flex-col max-h-full">
+      <div 
+        ref={setNodeRef}
+        className={`flex-shrink-0 w-80 bg-white rounded-lg shadow-md flex flex-col max-h-full transition-all ${
+          isOver ? 'ring-2 ring-primary-500 ring-opacity-50 bg-primary-50' : ''
+        }`}
+      >
         {/* Column Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-2">
@@ -97,26 +110,28 @@ const KanbanColumn = ({ column }) => {
           </p>
         </div>
 
-        {/* Tasks Area - Scrollable */}
+        {/* Tasks Area - Scrollable with Sortable Context */}
         <div className="flex-1 p-4 overflow-y-auto space-y-3 min-h-[200px] max-h-[60vh]">
-          {tasks.length > 0 ? (
-            /* Render Tasks */
-            tasks.map(task => (
-              <TaskCard 
-                key={task._id} 
-                task={task} 
-                columnId={column._id}
-              />
-            ))
-          ) : (
-            /* Empty State */
-            <div className="flex flex-col items-center justify-center h-full text-center py-8">
-              <div className="text-4xl mb-2">📝</div>
-              <p className="text-sm text-gray-400">
-                No tasks yet
-              </p>
-            </div>
-          )}
+          <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+            {tasks.length > 0 ? (
+              /* Render Tasks */
+              tasks.map(task => (
+                <TaskCard 
+                  key={task._id} 
+                  task={task} 
+                  columnId={column._id}
+                />
+              ))
+            ) : (
+              /* Empty State */
+              <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                <div className="text-4xl mb-2">📝</div>
+                <p className="text-sm text-gray-400">
+                  {isOver ? 'Drop task here' : 'No tasks yet'}
+                </p>
+              </div>
+            )}
+          </SortableContext>
         </div>
 
         {/* Add Task Button */}

@@ -209,6 +209,73 @@ export const TaskProvider = ({ children }) => {
     return tasks[columnId] || []
   }
 
+  /**
+   * Move a task to a different column or reorder within same column
+   */
+  const moveTask = async (taskId, sourceColumnId, destinationColumnId, newOrder) => {
+    if (!taskId || !destinationColumnId) {
+      return { success: false, error: 'Task ID and destination column are required' }
+    }
+
+    try {
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        return { success: false, error: 'User not authenticated' }
+      }
+
+      const response = await axios.patch(`/tasks/${taskId}/move`, 
+        { columnId: destinationColumnId, order: newOrder },
+        {
+          headers: {
+            'x-user-id': userId
+          }
+        }
+      )
+
+      // Backend returns { message, task }
+      const movedTask = response.data.task || response.data
+
+      // Update state optimistically
+      // Remove from source column
+      if (sourceColumnId && tasks[sourceColumnId]) {
+        setTasks(prev => ({
+          ...prev,
+          [sourceColumnId]: prev[sourceColumnId].filter(t => t._id !== taskId)
+        }))
+      }
+
+      // Add to destination column
+      if (destinationColumnId && tasks[destinationColumnId]) {
+        const destTasks = tasks[destinationColumnId].filter(t => t._id !== taskId)
+        destTasks.splice(newOrder, 0, movedTask)
+        // Recalculate orders
+        const reorderedTasks = destTasks.map((t, index) => ({ ...t, order: index }))
+        setTasks(prev => ({
+          ...prev,
+          [destinationColumnId]: reorderedTasks
+        }))
+      }
+
+      return { success: true, data: movedTask }
+    } catch (err) {
+      console.error('Move task error:', err)
+      return { 
+        success: false, 
+        error: err.response?.data?.message || err.response?.data?.error || 'Failed to move task' 
+      }
+    }
+  }
+
+  /**
+   * Reorder tasks within the same column (optimistic update)
+   */
+  const reorderTasks = (columnId, reorderedTasks) => {
+    setTasks(prev => ({
+      ...prev,
+      [columnId]: reorderedTasks
+    }))
+  }
+
   const value = {
     tasks,
     loading,
@@ -217,7 +284,9 @@ export const TaskProvider = ({ children }) => {
     createTask,
     updateTask,
     deleteTask,
-    getColumnTasks
+    getColumnTasks,
+    moveTask,
+    reorderTasks
   }
 
   return (
