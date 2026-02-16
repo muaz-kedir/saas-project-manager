@@ -4,6 +4,7 @@ import { WorkspaceProvider } from './context/WorkspaceContext'
 import { ProjectProvider } from './context/ProjectContext'
 import { BoardProvider } from './context/BoardContext'
 import { ColumnProvider } from './context/ColumnContext'
+import { TaskProvider } from './context/TaskContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 import MainLayout from './layouts/MainLayout'
 import Login from './pages/Login'
@@ -20,29 +21,31 @@ function App() {
         <ProjectProvider>
           <BoardProvider>
             <ColumnProvider>
-              <Router>
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
+              <TaskProvider>
+                <Router>
+                  <Routes>
+                    {/* Public routes */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
 
-                  {/* Protected routes */}
-                  <Route element={<ProtectedRoute />}>
-                    <Route element={<MainLayout />}>
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/workspace/:workspaceId" element={<WorkspaceHome />} />
-                      <Route path="/workspace/:workspaceId/project/:projectId" element={<ProjectHome />} />
-                      <Route path="/workspace/:workspaceId/project/:projectId/board/:boardId" element={<BoardHome />} />
+                    {/* Protected routes */}
+                    <Route element={<ProtectedRoute />}>
+                      <Route element={<MainLayout />}>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/workspace/:workspaceId" element={<WorkspaceHome />} />
+                        <Route path="/workspace/:workspaceId/project/:projectId" element={<ProjectHome />} />
+                        <Route path="/workspace/:workspaceId/project/:projectId/board/:boardId" element={<BoardHome />} />
+                      </Route>
                     </Route>
-                  </Route>
 
-                  {/* Redirect root to dashboard */}
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    {/* Redirect root to dashboard */}
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-                  {/* 404 - Redirect to dashboard */}
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
-              </Router>
+                    {/* 404 - Redirect to dashboard */}
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </Router>
+              </TaskProvider>
             </ColumnProvider>
           </BoardProvider>
         </ProjectProvider>

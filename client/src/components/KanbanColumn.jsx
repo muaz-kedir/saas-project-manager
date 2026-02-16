@@ -1,16 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { useColumn } from '../context/ColumnContext'
+import { useTask } from '../context/TaskContext'
 import EditColumnModal from './EditColumnModal'
+import TaskCard from './TaskCard'
+import CreateTaskModal from './CreateTaskModal'
 
 /**
  * KanbanColumn Component
- * Displays a single Kanban column with tasks area
+ * Displays a single Kanban column with tasks
  */
 const KanbanColumn = ({ column }) => {
   const { selectedWorkspace, getUserRole } = useWorkspace()
   const { deleteColumn } = useColumn()
+  const { fetchTasks, getColumnTasks } = useTask()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   const role = selectedWorkspace ? getUserRole(selectedWorkspace) : null
@@ -18,6 +23,17 @@ const KanbanColumn = ({ column }) => {
   // Permission checks
   const canEdit = role === 'OWNER' || role === 'ADMIN'
   const canDelete = role === 'OWNER'
+  const canCreateTask = role === 'OWNER' || role === 'ADMIN' || role === 'MEMBER'
+
+  // Fetch tasks when column mounts
+  useEffect(() => {
+    if (column._id) {
+      fetchTasks(column._id)
+    }
+  }, [column._id, fetchTasks])
+
+  // Get tasks for this column
+  const tasks = getColumnTasks(column._id)
 
   // Handle delete column
   const handleDelete = async () => {
@@ -77,34 +93,46 @@ const KanbanColumn = ({ column }) => {
 
           {/* Task Count */}
           <p className="text-xs text-gray-500">
-            0 tasks
+            {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
           </p>
         </div>
 
         {/* Tasks Area - Scrollable */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3 min-h-[200px]">
-          {/* Empty State */}
-          <div className="flex flex-col items-center justify-center h-full text-center py-8">
-            <div className="text-4xl mb-2">📝</div>
-            <p className="text-sm text-gray-400">
-              No tasks yet
-            </p>
-          </div>
+        <div className="flex-1 p-4 overflow-y-auto space-y-3 min-h-[200px] max-h-[60vh]">
+          {tasks.length > 0 ? (
+            /* Render Tasks */
+            tasks.map(task => (
+              <TaskCard 
+                key={task._id} 
+                task={task} 
+                columnId={column._id}
+              />
+            ))
+          ) : (
+            /* Empty State */
+            <div className="flex flex-col items-center justify-center h-full text-center py-8">
+              <div className="text-4xl mb-2">📝</div>
+              <p className="text-sm text-gray-400">
+                No tasks yet
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Add Task Button - Placeholder */}
-        <div className="p-4 border-t border-gray-200">
-          <button
-            className="w-full py-2 px-4 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors flex items-center justify-center space-x-2"
-            disabled
-            title="Coming soon"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Add Task (Coming Soon)</span>
-          </button>
-        </div>
+        {/* Add Task Button */}
+        {canCreateTask && (
+          <div className="p-4 border-t border-gray-200">
+            <button
+              onClick={() => setIsCreateTaskModalOpen(true)}
+              className="w-full py-2 px-4 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary-500 transition-colors flex items-center justify-center space-x-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Add Task</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Edit Column Modal */}
@@ -112,6 +140,13 @@ const KanbanColumn = ({ column }) => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         column={column}
+      />
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        isOpen={isCreateTaskModalOpen}
+        onClose={() => setIsCreateTaskModalOpen(false)}
+        columnId={column._id}
       />
     </>
   )

@@ -2,7 +2,6 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
-const tenant = require("../middlewares/tenant.middleware");
 
 const {
   createTask,
@@ -13,9 +12,9 @@ const {
   deleteTask
 } = require("../controllers/task.controller");
 
-// All routes require authentication and workspace context
+// All routes require authentication only
+// No tenant middleware needed - tasks are accessed via columnId
 router.use(auth);
-router.use(tenant);
 
 router.post("/column/:columnId", createTask);
 router.get("/column/:columnId", getTasks);

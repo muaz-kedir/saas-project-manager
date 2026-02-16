@@ -4,8 +4,15 @@ const Task = require("../models/Task");
 // Create task
 exports.createTask = async (req, res) => {
   try {
-    const { title, description, priority, dueDate, assignedTo } = req.body;
+    const { title, description, priority, dueDate, assignedTo, order } = req.body;
     const { columnId } = req.params;
+
+    // Calculate order if not provided
+    let taskOrder = order;
+    if (taskOrder === undefined) {
+      const lastTask = await Task.findOne({ column: columnId }).sort({ order: -1 });
+      taskOrder = lastTask ? lastTask.order + 1 : 0;
+    }
 
     const task = await Task.create({
       title,
@@ -14,6 +21,7 @@ exports.createTask = async (req, res) => {
       dueDate,
       column: columnId,
       assignedTo,
+      order: taskOrder,
       createdBy: req.user.userId
     });
 
@@ -22,6 +30,7 @@ exports.createTask = async (req, res) => {
       task
     });
   } catch (error) {
+    console.error('Create task error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -33,7 +42,6 @@ exports.getTasks = async (req, res) => {
 
     const tasks = await Task.find({ column: columnId })
       .populate("assignedTo", "name email")
-      .populate("createdBy", "name email")
       .sort({ order: 1 });
 
     res.json({
@@ -41,6 +49,7 @@ exports.getTasks = async (req, res) => {
       tasks
     });
   } catch (error) {
+    console.error('Get tasks error:', error);
     res.status(500).json({ error: error.message });
   }
 };
