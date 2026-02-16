@@ -2,7 +2,6 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
-const tenant = require("../middlewares/tenant.middleware");
 
 const {
   createColumn,
@@ -12,9 +11,9 @@ const {
   deleteColumn
 } = require("../controllers/column.controller");
 
-// All routes require authentication and workspace context
+// All routes require authentication only
+// No tenant middleware needed - columns are accessed via boardId
 router.use(auth);
-router.use(tenant);
 
 router.post("/board/:boardId", createColumn);
 router.get("/board/:boardId", getColumns);

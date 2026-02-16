@@ -45,6 +45,9 @@ export const ColumnProvider = ({ children }) => {
         }
       })
 
+      // Backend returns { count, columns }
+      const columnsData = response.data.columns || response.data
+      
       // Sort columns by order field
       const sortedColumns = columnsData.sort((a, b) => a.order - b.order)
       setColumns(sortedColumns)
@@ -75,6 +78,8 @@ export const ColumnProvider = ({ children }) => {
       const maxOrder = columns.length > 0 ? Math.max(...columns.map(c => c.order)) : -1
       const newOrder = maxOrder + 1
 
+      console.log('Creating column:', { name, boardId, order: newOrder })
+
       const response = await axios.post(`/columns/board/${boardId}`, 
         { name, order: newOrder },
         {
@@ -84,11 +89,14 @@ export const ColumnProvider = ({ children }) => {
         }
       )
 
+      console.log('Column created response:', response.data)
+
       // Backend returns { message, column }
       const newColumn = response.data.column || response.data
 
       // Add new column to state and re-sort
       const newColumns = [...columns, newColumn].sort((a, b) => a.order - b.order)
+      console.log('Updated columns:', newColumns)
       setColumns(newColumns)
 
       return { success: true, data: newColumn }
@@ -96,7 +104,7 @@ export const ColumnProvider = ({ children }) => {
       console.error('Create column error:', err)
       return { 
         success: false, 
-        error: err.response?.data?.message || 'Failed to create column' 
+        error: err.response?.data?.message || err.response?.data?.error || 'Failed to create column' 
       }
     }
   }

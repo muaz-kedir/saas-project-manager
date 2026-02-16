@@ -10,7 +10,7 @@ const CreateColumnModal = ({ isOpen, onClose, boardId }) => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const { createColumn } = useColumn()
+  const { createColumn, fetchColumns } = useColumn()
 
   // Handle input change
   const handleChange = (e) => {
@@ -40,6 +40,8 @@ const CreateColumnModal = ({ isOpen, onClose, boardId }) => {
     const result = await createColumn(columnName.trim(), boardId)
 
     if (result.success) {
+      // Refetch columns to ensure UI is in sync
+      await fetchColumns(boardId)
       // Success! Close modal
       handleClose()
     } else {
