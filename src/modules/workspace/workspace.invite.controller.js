@@ -2,19 +2,23 @@
 const WorkspaceMember = require("../../models/WorkspaceMember");
 const Workspace = require("../../models/Workspace");
 const User = require("../../models/User");
+const Invitation = require("../../models/Invitation");
 const mongoose = require("mongoose");
+const crypto = require('crypto');
+const emailService = require('../../services/email.service');
 
-// Invite user to workspace
+// Invite user to workspace via EMAIL
 exports.inviteUser = async (req, res) => {
   try {
-    const { email, role } = req.body;
+    const { email, name, role } = req.body;
     const workspaceId = req.params.workspaceId;
+    const inviterId = req.user.userId;
     
     // Validate input
-    if (!email) {
+    if (!email || !name) {
       return res.status(400).json({ 
-        error: "Email is required",
-        message: "Please provide an email address in the request body"
+        error: "Email and name are required",
+        message: "Please provide both email and name in the request body"
       });
     }
 
@@ -26,14 +30,25 @@ exports.inviteUser = async (req, res) => {
       });
     }
 
+    const memberRole = role ? role.toUpperCase() : "MEMBER";
+
+    // Validate role
+    const validRoles = ["ADMIN", "MEMBER"];
+    if (!validRoles.includes(memberRole)) {
+      return res.status(400).json({
+        error: "Invalid role",
+        message: `Role must be one of: ${validRoles.join(", ")}`
+      });
+    }
+
     // Parallel queries for better performance
-    const [workspace, requesterMembership, user] = await Promise.all([
+    const [workspace, requesterMembership, inviter] = await Promise.all([
       Workspace.findById(workspaceId),
       WorkspaceMember.findOne({
         workspace: workspaceId,
-        user: req.user.userId
+        user: inviterId
       }),
-      User.findOne({ email })
+      User.findById(inviterId)
     ]);
 
     // Check if workspace exists
@@ -54,7 +69,6 @@ exports.inviteUser = async (req, res) => {
 
     // Check permissions based on role
     const requesterRole = requesterMembership.role;
-    const memberRole = role ? role.toUpperCase() : "MEMBER";
 
     // Only OWNER and ADMIN can invite users
     if (requesterRole !== "OWNER" && requesterRole !== "ADMIN") {
@@ -68,66 +82,224 @@ exports.inviteUser = async (req, res) => {
     if (requesterRole === "ADMIN" && memberRole !== "MEMBER") {
       return res.status(403).json({
         error: "Permission denied",
-        message: "Admins can only invite members, not other admins or owners"
+        message: "Admins can only invite members, not other admins"
       });
     }
     
-    // Check if user exists
-    if (!user) {
-      return res.status(404).json({ 
-        error: "User not found",
-        message: `No user exists with email: ${email}. The user must be registered first.`
+    // Check if user already exists and is a member
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      const existingMember = await WorkspaceMember.findOne({
+        workspace: workspaceId,
+        user: existingUser._id,
       });
-    }
-    
-    // Check if user is already a member
-    const existingMember = await WorkspaceMember.findOne({
-      workspace: workspaceId,
-      user: user._id,
-    });
-    
-    if (existingMember) {
-      return res.status(400).json({ 
-        error: "User already a member",
-        message: "This user is already a member of the workspace"
-      });
-    }
-    
-    // Validate role
-    const validRoles = ["OWNER", "ADMIN", "MEMBER"];
-    
-    if (!validRoles.includes(memberRole)) {
-      return res.status(400).json({
-        error: "Invalid role",
-        message: `Role must be one of: ${validRoles.join(", ")}`
-      });
-    }
-    
-    // Add user as member
-    const member = await WorkspaceMember.create({
-      workspace: workspaceId,
-      user: user._id,
-      role: memberRole,
-    });
-    
-    res.status(201).json({
-      message: "User invited successfully",
-      member: {
-        _id: member._id,
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email
-        },
-        role: member.role,
-        createdAt: member.createdAt
+      
+      if (existingMember) {
+        return res.status(400).json({ 
+          error: "User already a member",
+          message: "This user is already a member of the workspace"
+        });
       }
+    }
+
+    // Check for existing pending invitation
+    const existingInvitation = await Invitation.findOne({
+      workspace: workspaceId,
+      email,
+      status: 'pending'
     });
+
+    if (existingInvitation) {
+      return res.status(400).json({ 
+        error: "Invitation already sent",
+        message: "An invitation has already been sent to this email"
+      });
+    }
+
+    // Generate unique token
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // Create invitation
+    const invitation = await Invitation.create({
+      workspace: workspaceId,
+      email,
+      name,
+      role: memberRole,
+      token,
+      invitedBy: inviterId
+    });
+
+    // Send invitation email
+    try {
+      await emailService.sendInvitationEmail({
+        to: email,
+        name,
+        workspaceName: workspace.name,
+        inviterName: inviter.name,
+        token
+      });
+
+      res.status(201).json({
+        message: "Invitation sent successfully",
+        invitation: {
+          id: invitation._id,
+          email: invitation.email,
+          name: invitation.name,
+          role: invitation.role,
+          status: invitation.status,
+          expiresAt: invitation.expiresAt
+        }
+      });
+    } catch (emailError) {
+      // Delete invitation if email fails
+      await Invitation.findByIdAndDelete(invitation._id);
+      throw new Error('Failed to send invitation email: ' + emailError.message);
+    }
   } catch (error) {
     console.error('Invite user error:', error);
     res.status(500).json({ 
       error: "Failed to invite user",
       message: error.message 
+    });
+  }
+};
+
+// Accept invitation
+exports.acceptInvitation = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const userId = req.user.userId;
+
+    // Find invitation
+    const invitation = await Invitation.findOne({ token, status: 'pending' })
+      .populate('workspace', 'name');
+
+    if (!invitation) {
+      return res.status(404).json({
+        error: "Invalid invitation",
+        message: "This invitation is invalid or has already been used"
+      });
+    }
+
+    // Check if expired
+    if (new Date() > invitation.expiresAt) {
+      invitation.status = 'expired';
+      await invitation.save();
+      return res.status(400).json({
+        error: "Invitation expired",
+        message: "This invitation has expired"
+      });
+    }
+
+    // Get user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found",
+        message: "User account not found"
+      });
+    }
+
+    // Verify email matches (if user is logged in)
+    if (user.email !== invitation.email) {
+      return res.status(403).json({
+        error: "Email mismatch",
+        message: "This invitation was sent to a different email address"
+      });
+    }
+
+    // Check if already a member
+    const existingMember = await WorkspaceMember.findOne({
+      workspace: invitation.workspace._id,
+      user: userId
+    });
+
+    if (existingMember) {
+      invitation.status = 'accepted';
+      await invitation.save();
+      return res.status(400).json({
+        error: "Already a member",
+        message: "You are already a member of this workspace"
+      });
+    }
+
+    // Add user to workspace
+    const member = await WorkspaceMember.create({
+      workspace: invitation.workspace._id,
+      user: userId,
+      role: invitation.role
+    });
+
+    // Mark invitation as accepted
+    invitation.status = 'accepted';
+    await invitation.save();
+
+    res.json({
+      message: "Invitation accepted successfully",
+      workspace: {
+        id: invitation.workspace._id,
+        name: invitation.workspace.name
+      },
+      member: {
+        id: member._id,
+        role: member.role
+      }
+    });
+  } catch (error) {
+    console.error('Accept invitation error:', error);
+    res.status(500).json({
+      error: "Failed to accept invitation",
+      message: error.message
+    });
+  }
+};
+
+// Get invitation details (public - no auth required)
+exports.getInvitationDetails = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const invitation = await Invitation.findOne({ token, status: 'pending' })
+      .populate('workspace', 'name')
+      .populate('invitedBy', 'name email');
+
+    if (!invitation) {
+      return res.status(404).json({
+        error: "Invalid invitation",
+        message: "This invitation is invalid or has already been used"
+      });
+    }
+
+    // Check if expired
+    if (new Date() > invitation.expiresAt) {
+      invitation.status = 'expired';
+      await invitation.save();
+      return res.status(400).json({
+        error: "Invitation expired",
+        message: "This invitation has expired"
+      });
+    }
+
+    res.json({
+      invitation: {
+        email: invitation.email,
+        name: invitation.name,
+        role: invitation.role,
+        workspace: {
+          id: invitation.workspace._id,
+          name: invitation.workspace.name
+        },
+        invitedBy: {
+          name: invitation.invitedBy.name
+        },
+        expiresAt: invitation.expiresAt
+      }
+    });
+  } catch (error) {
+    console.error('Get invitation error:', error);
+    res.status(500).json({
+      error: "Failed to get invitation",
+      message: error.message
     });
   }
 };

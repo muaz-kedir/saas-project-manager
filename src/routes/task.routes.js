@@ -9,7 +9,9 @@ const {
   getTask,
   updateTask,
   moveTask,
-  deleteTask
+  deleteTask,
+  addComment,
+  getActivity
 } = require("../controllers/task.controller");
 
 // All routes require authentication only
@@ -22,5 +24,7 @@ router.get("/:id", getTask);
 router.put("/:id", updateTask);
 router.patch("/:id/move", moveTask);
 router.delete("/:id", deleteTask);
+router.post("/:id/comments", addComment);
+router.get("/:id/activity", getActivity);
 
 module.exports = router;

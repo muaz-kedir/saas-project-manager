@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { useTask } from '../context/TaskContext'
+import { useTaskDrawer } from '../context/TaskDrawerContext'
 import EditTaskModal from './EditTaskModal'
 
 /**
@@ -12,6 +13,7 @@ import EditTaskModal from './EditTaskModal'
 const TaskCard = ({ task, columnId }) => {
   const { selectedWorkspace, getUserRole } = useWorkspace()
   const { deleteTask } = useTask()
+  const { openDrawer } = useTaskDrawer()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -56,6 +58,13 @@ const TaskCard = ({ task, columnId }) => {
     }
   }
 
+  // Handle card click to open drawer
+  const handleCardClick = (e) => {
+    // Don't open drawer if clicking on action buttons
+    if (e.target.closest('button')) return
+    openDrawer(task._id)
+  }
+
   return (
     <>
       <div 
@@ -66,6 +75,7 @@ const TaskCard = ({ task, columnId }) => {
         }`}
         {...attributes}
         {...listeners}
+        onClick={handleCardClick}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">

@@ -7,10 +7,12 @@ import { useWorkspace } from '../context/WorkspaceContext'
  */
 const InviteMemberModal = ({ isOpen, onClose, workspaceId }) => {
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     role: 'MEMBER'
   })
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
   const { inviteMember, fetchMembers, selectedWorkspace, getAvailableRoles } = useWorkspace()
@@ -31,6 +33,13 @@ const InviteMemberModal = ({ isOpen, onClose, workspaceId }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
+
+    // Validate name
+    if (!formData.name || formData.name.trim().length < 2) {
+      setError('Please enter a valid name (at least 2 characters)')
+      return
+    }
 
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -48,12 +57,18 @@ const InviteMemberModal = ({ isOpen, onClose, workspaceId }) => {
     setLoading(true)
 
     // Invite member
-    const result = await inviteMember(workspaceId, formData.email, formData.role)
+    const result = await inviteMember(workspaceId, formData.name, formData.email, formData.role)
 
     if (result.success) {
-      // Success! Refresh member list and close modal
-      await fetchMembers(workspaceId)
-      handleClose()
+      // Success! Show message
+      setSuccess('Invitation sent successfully! The user will receive an email.')
+      setFormData({ name: '', email: '', role: 'MEMBER' })
+      setLoading(false)
+      
+      // Close after 2 seconds
+      setTimeout(() => {
+        handleClose()
+      }, 2000)
     } else {
       setError(result.error)
       setLoading(false)
@@ -62,8 +77,9 @@ const InviteMemberModal = ({ isOpen, onClose, workspaceId }) => {
 
   // Handle closing modal
   const handleClose = () => {
-    setFormData({ email: '', role: 'MEMBER' })
+    setFormData({ name: '', email: '', role: 'MEMBER' })
     setError('')
+    setSuccess('')
     setLoading(false)
     onClose()
   }
@@ -110,6 +126,32 @@ const InviteMemberModal = ({ isOpen, onClose, workspaceId }) => {
               </div>
             )}
 
+            {/* Success Message */}
+            {success && (
+              <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-lg text-sm">
+                {success}
+              </div>
+            )}
+
+            {/* Name Input */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-dark-text mb-2">
+                Full Name <span className="text-red-400">*</span>
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                value={formData.name}
+                onChange={handleChange}
+                className="input"
+                placeholder="John Doe"
+                disabled={loading}
+                autoFocus
+                required
+              />
+            </div>
+
             {/* Email Input */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-dark-text mb-2">
@@ -124,11 +166,10 @@ const InviteMemberModal = ({ isOpen, onClose, workspaceId }) => {
                 className="input"
                 placeholder="colleague@example.com"
                 disabled={loading}
-                autoFocus
                 required
               />
               <p className="text-xs text-dark-muted mt-1">
-                User must be registered to receive invitation
+                An invitation email will be sent to this address
               </p>
             </div>
 

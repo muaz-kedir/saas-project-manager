@@ -160,28 +160,24 @@ export const WorkspaceProvider = ({ children }) => {
   /**
    * Invite a user to workspace
    */
-  const inviteMember = async (workspaceId, email, role = 'MEMBER') => {
+  const inviteMember = async (workspaceId, name, email, role = 'MEMBER') => {
     setLoading(true)
     setError(null)
 
     try {
       const response = await axios.post(`/workspaces/${workspaceId}/invite`, {
+        name,
         email,
         role
       })
 
-      // Backend returns { message, member: { _id, user: {...}, role, createdAt } }
-      const newMember = response.data.member
+      // Backend returns { message, invitation: {...} }
+      const invitation = response.data.invitation
 
-      // Add to local members state if it matches the expected format
-      if (newMember && newMember._id) {
-        setMembers(prev => [...prev, newMember])
-      }
-
-      return { success: true, member: newMember }
+      return { success: true, invitation }
     } catch (err) {
       console.error('Invite member error:', err)
-      const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to invite member'
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to send invitation'
       setError(errorMessage)
       return { success: false, error: errorMessage }
     } finally {

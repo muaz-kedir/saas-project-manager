@@ -11,7 +11,9 @@ const {
 
 const {
   inviteUser,
-  getMembers
+  getMembers,
+  acceptInvitation,
+  getInvitationDetails
 } = require("./workspace.invite.controller");
 
 // create & list workspaces
@@ -21,5 +23,9 @@ router.get("/", auth, getMyWorkspaces);
 // workspace members
 router.get("/:workspaceId/members", auth, getMembers);
 router.post("/:workspaceId/invite", auth, inviteUser);
+
+// invitation routes
+router.get("/invitations/:token", getInvitationDetails); // Public route
+router.post("/invitations/:token/accept", auth, acceptInvitation);
 
 module.exports = router;
