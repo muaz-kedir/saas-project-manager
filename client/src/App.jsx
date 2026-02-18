@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { SocketProvider } from './context/SocketContext'
 import { WorkspaceProvider } from './context/WorkspaceContext'
 import { ProjectProvider } from './context/ProjectContext'
 import { BoardProvider } from './context/BoardContext'
@@ -20,7 +21,8 @@ import TaskDrawer from './components/TaskDrawer'
 function App() {
   return (
     <AuthProvider>
-      <WorkspaceProvider>
+      <SocketProvider>
+        <WorkspaceProvider>
         <ProjectProvider>
           <BoardProvider>
             <ColumnProvider>
@@ -58,7 +60,8 @@ function App() {
             </ColumnProvider>
           </BoardProvider>
         </ProjectProvider>
-      </WorkspaceProvider>
+        </WorkspaceProvider>
+      </SocketProvider>
     </AuthProvider>
   )
 }

@@ -1,5 +1,8 @@
 // Task controller
 const Task = require("../models/Task");
+const Column = require("../models/Column");
+const Board = require("../models/Board");
+const { emitToBoard } = require("../socket");
 
 // Create task
 exports.createTask = async (req, res) => {
@@ -34,6 +37,16 @@ exports.createTask = async (req, res) => {
       { path: 'assignedTo', select: 'name email' },
       { path: 'column', select: 'name' }
     ]);
+
+    // Get board ID for socket room
+    const column = await Column.findById(columnId).populate('board');
+    if (column && column.board) {
+      // Emit socket event to board room
+      emitToBoard(column.board._id, 'task:created', {
+        task,
+        columnId
+      });
+    }
 
     res.status(201).json({
       message: "Task created successfully",
@@ -154,6 +167,16 @@ exports.updateTask = async (req, res) => {
       { path: 'activity.user', select: 'name email' }
     ]);
 
+    // Get board ID for socket room
+    const column = await Column.findById(task.column).populate('board');
+    if (column && column.board) {
+      // Emit socket event to board room
+      emitToBoard(column.board._id, 'task:updated', {
+        task,
+        changes
+      });
+    }
+
     res.json({
       message: "Task updated successfully",
       task
@@ -199,6 +222,18 @@ exports.moveTask = async (req, res) => {
     
     await task.save();
 
+    // Get board ID for socket room
+    const column = await Column.findById(columnId).populate('board');
+    if (column && column.board) {
+      // Emit socket event to board room
+      emitToBoard(column.board._id, 'task:moved', {
+        task,
+        oldColumnId,
+        newColumnId: columnId,
+        order
+      });
+    }
+
     res.json({
       message: "Task moved successfully",
       task
@@ -213,13 +248,26 @@ exports.deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const task = await Task.findById(id);
+    const task = await Task.findById(id).populate('column');
 
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
+    const columnId = task.column._id;
+    const taskId = task._id;
+
     await task.deleteOne();
+
+    // Get board ID for socket room
+    const column = await Column.findById(columnId).populate('board');
+    if (column && column.board) {
+      // Emit socket event to board room
+      emitToBoard(column.board._id, 'task:deleted', {
+        taskId,
+        columnId
+      });
+    }
 
     res.json({ message: "Task deleted successfully" });
   } catch (error) {
@@ -262,8 +310,19 @@ exports.addComment = async (req, res) => {
     await task.save();
     await task.populate([
       { path: 'comments.author', select: 'name email' },
-      { path: 'activity.user', select: 'name email' }
+      { path: 'activity.user', select: 'name email' },
+      { path: 'column' }
     ]);
+
+    // Get board ID for socket room
+    const column = await Column.findById(task.column._id).populate('board');
+    if (column && column.board) {
+      // Emit socket event to board room
+      emitToBoard(column.board._id, 'comment:added', {
+        taskId: task._id,
+        comment: task.comments[task.comments.length - 1]
+      });
+    }
 
     res.status(201).json({
       message: "Comment added successfully",

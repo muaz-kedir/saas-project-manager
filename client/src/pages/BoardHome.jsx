@@ -13,6 +13,7 @@ import { useBoard } from '../context/BoardContext'
 import { useColumn } from '../context/ColumnContext'
 import { useTask } from '../context/TaskContext'
 import { useWorkspace } from '../context/WorkspaceContext'
+import { useSocket } from '../context/SocketContext'
 import KanbanColumn from '../components/KanbanColumn'
 import CreateColumnModal from '../components/CreateColumnModal'
 
@@ -24,8 +25,9 @@ const BoardHome = () => {
   const { boardId } = useParams()
   const { boards, fetchBoards } = useBoard()
   const { columns, loading, fetchColumns } = useColumn()
-  const { getColumnTasks, moveTask, reorderTasks } = useTask()
+  const { getColumnTasks, moveTask, reorderTasks, addTask, updateTask, deleteTask } = useTask()
   const { selectedWorkspace, getUserRole } = useWorkspace()
+  const { joinBoard, leaveBoard, on, off } = useSocket()
   const [board, setBoard] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [activeTask, setActiveTask] = useState(null)
@@ -58,6 +60,62 @@ const BoardHome = () => {
       fetchColumns(boardId)
     }
   }, [boardId, fetchColumns])
+
+  // Socket.io: Join board room and listen for real-time updates
+  useEffect(() => {
+    if (!boardId) return;
+
+    // Join board room
+    joinBoard(boardId);
+
+    // Listen for task created
+    const handleTaskCreated = ({ task, columnId }) => {
+      console.log('🔔 Task created:', task);
+      addTask(task);
+    };
+
+    // Listen for task updated
+    const handleTaskUpdated = ({ task }) => {
+      console.log('🔔 Task updated:', task);
+      updateTask(task._id, task);
+    };
+
+    // Listen for task moved
+    const handleTaskMoved = ({ task, oldColumnId, newColumnId }) => {
+      console.log('🔔 Task moved:', task);
+      updateTask(task._id, task);
+    };
+
+    // Listen for task deleted
+    const handleTaskDeleted = ({ taskId }) => {
+      console.log('🔔 Task deleted:', taskId);
+      deleteTask(taskId);
+    };
+
+    // Listen for comment added
+    const handleCommentAdded = ({ taskId, comment }) => {
+      console.log('🔔 Comment added:', comment);
+      // Refresh task to get updated comments
+      // You can implement a more granular update if needed
+    };
+
+    // Register listeners
+    on('task:created', handleTaskCreated);
+    on('task:updated', handleTaskUpdated);
+    on('task:moved', handleTaskMoved);
+    on('task:deleted', handleTaskDeleted);
+    on('comment:added', handleCommentAdded);
+
+    // Cleanup
+    return () => {
+      off('task:created', handleTaskCreated);
+      off('task:updated', handleTaskUpdated);
+      off('task:moved', handleTaskMoved);
+      off('task:deleted', handleTaskDeleted);
+      off('comment:added', handleCommentAdded);
+      leaveBoard(boardId);
+    };
+  }, [boardId, joinBoard, leaveBoard, on, off, addTask, updateTask, deleteTask]);
 
   // Handle drag start
   const handleDragStart = (event) => {
