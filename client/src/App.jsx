@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { SocketProvider } from './context/SocketContext'
+import { ToastProvider } from './components/Toast'
 import { WorkspaceProvider } from './context/WorkspaceContext'
 import { ProjectProvider } from './context/ProjectContext'
 import { BoardProvider } from './context/BoardContext'
@@ -22,7 +23,8 @@ function App() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <WorkspaceProvider>
+        <ToastProvider>
+          <WorkspaceProvider>
         <ProjectProvider>
           <BoardProvider>
             <ColumnProvider>
@@ -61,6 +63,7 @@ function App() {
           </BoardProvider>
         </ProjectProvider>
         </WorkspaceProvider>
+        </ToastProvider>
       </SocketProvider>
     </AuthProvider>
   )

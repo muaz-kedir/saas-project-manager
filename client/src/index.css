@@ -30,15 +30,15 @@ body {
 /* Custom utility classes - Dark theme */
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 transform active:scale-95;
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 disabled:bg-gray-600 disabled:cursor-not-allowed shadow-lg shadow-primary-600/20;
+    @apply bg-primary-600 text-white hover:bg-primary-700 hover:shadow-xl disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50 shadow-lg shadow-primary-600/20 hover:scale-105;
   }
 
   .btn-secondary {
-    @apply border transition-all duration-200;
+    @apply border transition-all duration-200 hover:scale-105 active:scale-95;
     background-color: #1E1F24;
     color: #E8E9ED;
     border-color: #3A3B41;
@@ -46,13 +46,19 @@ body {
 
   .btn-secondary:hover {
     background-color: #3A3B41;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   .input {
-    @apply w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
     background-color: #1E1F24;
     border: 1px solid #3A3B41;
     color: #E8E9ED;
+  }
+
+  .input:focus {
+    background-color: #252630;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
 
   .input::placeholder {
@@ -60,9 +66,13 @@ body {
   }
 
   .card {
-    @apply rounded-xl shadow-lg p-6;
+    @apply rounded-xl shadow-lg p-6 transition-all duration-200 hover:shadow-2xl;
     background-color: #1E1F24;
     border: 1px solid #3A3B41;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
   }
 
   /* Gradient backgrounds for cards */
@@ -90,4 +100,179 @@ body {
 /* Smooth transitions */
 * {
   @apply transition-colors duration-200;
+}
+
+/* Loading skeleton animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    to right,
+    #1E1F24 0%,
+    #2C2D33 20%,
+    #1E1F24 40%,
+    #1E1F24 100%
+  );
+  background-size: 1000px 100%;
+  border-radius: 8px;
+}
+
+/* Success animation */
+@keyframes successPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+.success-pulse {
+  animation: successPulse 0.6s ease-in-out;
+}
+
+/* Slide in animation */
+@keyframes slideIn {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Scale in animation */
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Drag overlay styles */
+.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.drag-overlay {
+  transform: rotate(5deg) scale(1.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Drop zone highlight */
+.drop-zone-active {
+  background-color: rgba(102, 126, 234, 0.1);
+  border: 2px dashed #667eea;
+}
+
+/* Empty state */
+.empty-state {
+  @apply flex flex-col items-center justify-center py-12 text-center;
+}
+
+.empty-state-icon {
+  @apply text-6xl mb-4 opacity-50;
+}
+
+.empty-state-title {
+  @apply text-xl font-semibold text-dark-text mb-2;
+}
+
+.empty-state-description {
+  @apply text-dark-muted mb-6 max-w-md;
+}
+
+/* Focus visible for accessibility */
+*:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Modal backdrop blur */
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Toast notification */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.toast {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Pulse animation for notifications */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
 }
